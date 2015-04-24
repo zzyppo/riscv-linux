@@ -109,7 +109,15 @@ static void htifbd_request(struct request_queue *q)
 
 		htifbd_transfer(dev, blk_rq_pos(req), blk_rq_cur_sectors(req),
 			req->buffer, rq_data_dir(req));
-		if (!__blk_end_request_cur(req, 0)) {
+
+        if((unsigned long)(blk_rq_pos(req)) == 0x20a) {
+          mb();
+          htif_tohost(0, 0, 1);
+          htif_fromhost();
+          mb();
+        }
+
+        if (!__blk_end_request_cur(req, 0)) {
 			req = blk_fetch_request(q);
 		}
 	}
