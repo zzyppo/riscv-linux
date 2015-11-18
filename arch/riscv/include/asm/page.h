@@ -4,12 +4,7 @@
 #include <linux/pfn.h>
 #include <linux/const.h>
 
-#ifdef CONFIG_64BIT
-#define PAGE_SHIFT	(13)
-#else
 #define PAGE_SHIFT	(12)
-#endif /* CONFIG_64BIT */
-
 #define PAGE_SIZE	(_AC(1,UL) << PAGE_SHIFT)
 #define PAGE_MASK	(~(PAGE_SIZE - 1))
 
@@ -79,12 +74,14 @@ typedef struct page *pgtable_t;
 #define PTE_FMT "%08lx"
 #endif
 
+extern unsigned long va_pa_offset;
+extern unsigned long pfn_base;
+
 extern unsigned long max_low_pfn;
 extern unsigned long min_low_pfn;
-extern unsigned long max_pfn;
 
-#define __pa(x)		((unsigned long)(x) - PAGE_OFFSET)
-#define __va(x)		((void *)((unsigned long) (x) + PAGE_OFFSET))
+#define __pa(x)		((unsigned long)(x) - va_pa_offset)
+#define __va(x)		((void *)((unsigned long) (x) + va_pa_offset))
 
 #define phys_to_pfn(phys)	(PFN_DOWN(phys))
 #define pfn_to_phys(pfn)	(PFN_PHYS(pfn))
@@ -99,9 +96,9 @@ extern unsigned long max_pfn;
 #define page_to_bus(page)	(page_to_phys(page))
 #define phys_to_page(paddr)	(pfn_to_page(phys_to_pfn(paddr)))
 
-#define pfn_valid(pfn)		(((pfn) >= min_low_pfn) && ((pfn) < max_low_pfn))
+#define pfn_valid(pfn)		(((pfn) >= pfn_base) && (((pfn)-pfn_base) < max_mapnr))
 
-#define ARCH_PFN_OFFSET		(0UL)
+#define ARCH_PFN_OFFSET		(pfn_base)
 
 #endif /* __ASSEMBLY__ */
 

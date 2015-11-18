@@ -5,12 +5,14 @@
 
 #include <asm/irq.h>
 #include <asm/csr.h>
+#include <asm/sbi.h>
+
+static DEFINE_PER_CPU(struct clock_event_device, clock_event);
 
 static int riscv_timer_set_next_event(unsigned long delta,
 	struct clock_event_device *evdev)
 {
-	/* Set comparator */
-	csr_write(compare, csr_read(count) + delta);
+	sbi_set_timer(csr_read(stime) + delta);
 	return 0;
 }
 
@@ -29,19 +31,10 @@ static void riscv_timer_set_mode(enum clock_event_mode mode,
 	}
 }
 
-static struct clock_event_device riscv_clockevent = {
-	.name = "riscv_timer_clockevent",
-	.features = CLOCK_EVT_FEAT_ONESHOT,
-	.rating = 300,
-	.set_next_event = riscv_timer_set_next_event,
-	.set_mode = riscv_timer_set_mode,
-};
-
 static irqreturn_t timer_interrupt(int irq, void *dev_id)
 {
-	struct clock_event_device *evdev;
-
-	evdev = dev_id;
+	int cpu = smp_processor_id();
+	struct clock_event_device *evdev = &per_cpu(clock_event, cpu);
 	evdev->event_handler(evdev);
 	return IRQ_HANDLED;
 }
@@ -50,19 +43,18 @@ static struct irqaction timer_irq = {
 	.handler = timer_interrupt,
 	.flags = IRQF_DISABLED | IRQF_TIMER,
 	.name = "timer",
-	.dev_id = &riscv_clockevent,
 };
 
 
-static cycle_t riscv_rdcycle(struct clocksource *cs)
+static cycle_t riscv_rdtime(struct clocksource *cs)
 {
-	return csr_read(cycle);
+	return csr_read(stime);
 }
 
 static struct clocksource riscv_clocksource = {
 	.name = "riscv_clocksource",
 	.rating = 300,
-	.read = riscv_rdcycle,
+	.read = riscv_rdtime,
 #ifdef CONFIG_64BITS
 	.mask = CLOCKSOURCE_MASK(64),
 #else
@@ -71,17 +63,26 @@ static struct clocksource riscv_clocksource = {
 	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
 };
 
+void __init init_clockevent(void)
+{
+	int cpu = smp_processor_id();
+	struct clock_event_device *ce = &per_cpu(clock_event, cpu);
+
+	*ce = (struct clock_event_device){
+		.name = "riscv_timer_clockevent",
+		.features = CLOCK_EVT_FEAT_ONESHOT,
+		.rating = 300,
+		.cpumask = cpumask_of(cpu),
+		.set_mode = riscv_timer_set_mode,
+		.set_next_event = riscv_timer_set_next_event,
+	};
+
+	clockevents_config_and_register(ce, sbi_timebase(), 100, 0x7fffffff);
+}
 
 void __init time_init(void)
 {
-	u32 freq;
-	freq = 100000000UL;
-
-	csr_write(count, 0);
-
-	clocksource_register_hz(&riscv_clocksource, freq);
+	clocksource_register_hz(&riscv_clocksource, sbi_timebase());
 	setup_irq(IRQ_TIMER, &timer_irq);
-	riscv_clockevent.cpumask = cpumask_of(0);
-	clockevents_config_and_register(&riscv_clockevent,
-		freq, 100, 0xffffffff);
+	init_clockevent();
 }

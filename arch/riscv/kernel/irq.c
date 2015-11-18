@@ -3,10 +3,15 @@
 #include <linux/seq_file.h>
 
 #include <asm/ptrace.h>
+#include <asm/sbi.h>
+#include <asm/smp.h>
 
 asmlinkage void __irq_entry do_IRQ(unsigned int irq, struct pt_regs *regs)
 {
 	struct pt_regs *old_regs;
+
+	if (irq == IRQ_SOFTWARE && handle_ipi())
+		return;
 
 	old_regs = set_irq_regs(regs);
 	irq_enter();
@@ -17,12 +22,30 @@ asmlinkage void __irq_entry do_IRQ(unsigned int irq, struct pt_regs *regs)
 
 static void riscv_irq_mask(struct irq_data *d)
 {
-	csr_clear(status, SR_IM_MASK(d->irq));
+	switch (d->irq) {
+	case IRQ_TIMER: 
+		csr_clear(sie, SIE_STIE);
+		break;
+	case IRQ_SOFTWARE: 
+		csr_clear(sie, SIE_SSIE);
+		break;
+	default:
+		BUG();
+	}
 }
 
 static void riscv_irq_unmask(struct irq_data *d)
 {
-	csr_set(status, SR_IM_MASK(d->irq));
+	switch (d->irq) {
+	case IRQ_TIMER: 
+		csr_set(sie, SIE_STIE);
+		break;
+	case IRQ_SOFTWARE: 
+		csr_set(sie, SIE_SSIE);
+		break;
+	default:
+		BUG();
+	}
 }
 
 struct irq_chip riscv_irq_chip = {

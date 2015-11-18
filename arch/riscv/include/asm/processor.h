@@ -3,12 +3,7 @@
 
 #include <linux/const.h>
 
-/*
- * User space process size: 2GB (highest virtual address below the
- * sign-extension hole).  This may be hardcoded into a few places,
- * so don't change it unless you know what you are doing.
- */
-#define TASK_SIZE		_AC(0x80000000,UL)
+#include <asm/ptrace.h>
 
 /*
  * This decides where the kernel will search for a free chunk of vm
@@ -36,8 +31,9 @@ struct pt_regs;
 struct thread_struct {
 	/* Callee-saved registers */
 	unsigned long ra;
-	unsigned long s[12];	/* s[0]: frame pointer */
 	unsigned long sp;	/* Kernel mode stack */
+	unsigned long s[12];	/* s[0]: frame pointer */
+	struct user_fpregs_struct fstate;
 };
 
 #define INIT_THREAD {					\
@@ -52,7 +48,7 @@ struct thread_struct {
 #define task_pt_regs(tsk) \
 	((struct pt_regs *)(task_stack_page(tsk) + THREAD_SIZE) - 1)
 
-#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->epc)
+#define KSTK_EIP(tsk)		(task_pt_regs(tsk)->sepc)
 #define KSTK_ESP(tsk)		(task_pt_regs(tsk)->sp)
 
 
@@ -79,6 +75,11 @@ static inline void cpu_relax(void)
 	/* In lieu of a halt instruction, induce a long-latency stall. */
 	__asm__ __volatile__ ("div %0, %0, zero" : "=r" (dummy));
 	barrier();
+}
+
+static inline void wait_for_interrupt(void)
+{
+	__asm__ __volatile__ ("wfi");
 }
 
 #endif /* __ASSEMBLY__ */

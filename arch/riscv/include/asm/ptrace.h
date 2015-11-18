@@ -1,12 +1,13 @@
 #ifndef _ASM_RISCV_PTRACE_H
 #define _ASM_RISCV_PTRACE_H
 
+#include <uapi/asm/ptrace.h>
 #include <asm/csr.h>
 
 #ifndef __ASSEMBLY__
 
-typedef struct pt_regs {
-	unsigned long epc;
+struct pt_regs {
+	unsigned long sepc;
 	unsigned long ra;
 	unsigned long sp;
 	unsigned long gp;
@@ -38,11 +39,11 @@ typedef struct pt_regs {
 	unsigned long t4;
 	unsigned long t5;
 	unsigned long t6;
-	/* PCRs */
-	unsigned long status;
-	unsigned long badvaddr;
-	unsigned long cause;
-} pt_regs;
+	/* Supervisor CSRs */
+	unsigned long sstatus;
+	unsigned long sbadaddr;
+	unsigned long scause;
+};
 
 #ifdef CONFIG_64BIT
 #define REG_FMT "%016lx"
@@ -50,11 +51,11 @@ typedef struct pt_regs {
 #define REG_FMT "%08lx"
 #endif
 
-#define user_mode(regs) (((regs)->status & SR_PS) == 0)
+#define user_mode(regs) (((regs)->sstatus & SR_PS) == 0)
 
 
 /* Helpers for working with the instruction pointer */
-#define GET_IP(regs) ((regs)->epc)
+#define GET_IP(regs) ((regs)->sepc)
 #define SET_IP(regs, val) (GET_IP(regs) = (val))
 
 static inline unsigned long instruction_pointer(struct pt_regs *regs)

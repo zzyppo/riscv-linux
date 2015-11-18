@@ -30,43 +30,41 @@
 #define FIRST_USER_ADDRESS  0
 
 /* Page protection bits */
-#define _PAGE_BASE      (_PAGE_ACCESSED | _PAGE_V)
-#define _PAGE_R         (_PAGE_SR | _PAGE_UR)
-#define _PAGE_W         (_PAGE_SW | _PAGE_UW)
-#define _PAGE_X         (_PAGE_SX | _PAGE_UX)
+#define _PAGE_BASE   (_PAGE_PRESENT | _PAGE_ACCESSED)
 
 #define PAGE_NONE		__pgprot(0)
-#define PAGE_READ		__pgprot(_PAGE_BASE | _PAGE_R)
-#define PAGE_WRITE		__pgprot(_PAGE_BASE | _PAGE_W)
-#define PAGE_EXEC		__pgprot(_PAGE_BASE | _PAGE_X)
+#define PAGE_READ		__pgprot(_PAGE_BASE | _PAGE_TYPE_USER_RO)
+#define PAGE_WRITE		__pgprot(_PAGE_BASE | _PAGE_TYPE_USER_RW)
+#define PAGE_EXEC		__pgprot(_PAGE_BASE | _PAGE_TYPE_USER_RX)
+#define PAGE_WRITE_EXEC		__pgprot(_PAGE_BASE | _PAGE_TYPE_USER_RWX)
 
-#define PAGE_READ_EXEC  	__pgprot(_PAGE_BASE | _PAGE_R | _PAGE_X)
-#define PAGE_WRITE_EXEC		__pgprot(_PAGE_BASE | _PAGE_W | _PAGE_X)
-#define PAGE_COPY		__pgprot(_PAGE_BASE | _PAGE_SR)
-#define PAGE_COPY_EXEC		__pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_X)
-#define PAGE_SHARED		__pgprot(_PAGE_BASE | _PAGE_R | _PAGE_W)
-#define PAGE_SHARED_EXEC	__pgprot(_PAGE_BASE | _PAGE_R | _PAGE_W | _PAGE_X)
+#define PAGE_COPY		PAGE_READ
+#define PAGE_COPY_EXEC		PAGE_EXEC
+#define PAGE_SHARED		PAGE_WRITE
+#define PAGE_SHARED_EXEC	PAGE_WRITE_EXEC
 
-#define PAGE_KERNEL		__pgprot(_PAGE_BASE | _PAGE_SR | _PAGE_SW | _PAGE_G)
+#define PAGE_KERNEL		__pgprot(_PAGE_BASE | _PAGE_TYPE_KERN_RW)
+
+#define swapper_pg_dir NULL
 
 /* MAP_PRIVATE permissions: xwr (copy-on-write) */
 #define __P000	PAGE_NONE
 #define __P001	PAGE_READ
 #define __P010	PAGE_COPY
-#define __P011	PAGE_READ
+#define __P011	PAGE_COPY
 #define __P100	PAGE_EXEC
-#define __P101	PAGE_READ_EXEC
+#define __P101	PAGE_EXEC
 #define __P110	PAGE_COPY_EXEC
-#define __P111	PAGE_READ_EXEC
+#define __P111	PAGE_COPY_EXEC
 
 /* MAP_SHARED permissions: xwr */
 #define __S000	PAGE_NONE
 #define __S001	PAGE_READ
-#define __S010	PAGE_WRITE
+#define __S010	PAGE_SHARED
 #define __S011	PAGE_SHARED
 #define __S100	PAGE_EXEC
-#define __S101	PAGE_READ_EXEC
-#define __S110	PAGE_WRITE_EXEC
+#define __S101	PAGE_EXEC
+#define __S110	PAGE_SHARED_EXEC
 #define __S111	PAGE_SHARED_EXEC
 
 /*
@@ -114,18 +112,18 @@ static inline pgd_t *pgd_offset(const struct mm_struct *mm, unsigned long addr)
 
 static inline struct page *pmd_page(pmd_t pmd)
 {
-	return pfn_to_page(pmd_val(pmd) >> PAGE_SHIFT);
+	return pfn_to_page(pmd_val(pmd) >> _PAGE_PFN_SHIFT);
 }
 
 static inline unsigned long pmd_page_vaddr(pmd_t pmd)
 {
-	return (unsigned long)__va(pmd_val(pmd) & PAGE_MASK);
+	return (unsigned long)pfn_to_virt(pmd_val(pmd) >> _PAGE_PFN_SHIFT);
 }
 
 /* Yields the page frame number (PFN) of a page table entry */
 static inline unsigned long pte_pfn(pte_t pte)
 {
-	return (pte_val(pte) >> PAGE_SHIFT);
+	return (pte_val(pte) >> _PAGE_PFN_SHIFT);
 }
 
 #define pte_page(x)     pfn_to_page(pte_pfn(x))
@@ -133,7 +131,7 @@ static inline unsigned long pte_pfn(pte_t pte)
 /* Constructs a page table entry */
 static inline pte_t pfn_pte(unsigned long pfn, pgprot_t prot)
 {
-	return __pte((pfn << PAGE_SHIFT) | pgprot_val(prot));
+	return __pte((pfn << _PAGE_PFN_SHIFT) | pgprot_val(prot));
 }
 
 static inline pte_t mk_pte(struct page *page, pgprot_t prot)
@@ -187,7 +185,7 @@ static inline int pte_none(pte_t pte)
 
 static inline int pte_write(pte_t pte)
 {
-	return pte_val(pte) & _PAGE_W;
+	return pte_val(pte) & _PAGE_WRITE;
 }
 
 /* static inline int pte_exec(pte_t pte) */
@@ -216,14 +214,14 @@ static inline int pte_special(pte_t pte)
 
 static inline pte_t pte_wrprotect(pte_t pte)
 {
-	return __pte(pte_val(pte) & ~(_PAGE_W));
+	return __pte(pte_val(pte) & ~(_PAGE_WRITE));
 }
 
 /* static inline pte_t pte_mkread(pte_t pte) */
 
 static inline pte_t pte_mkwrite(pte_t pte)
 {
-	return __pte(pte_val(pte) | _PAGE_W);
+	return __pte(pte_val(pte) | _PAGE_WRITE);
 }
 
 /* static inline pte_t pte_mkexec(pte_t pte) */
@@ -273,13 +271,13 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
  * Encode and decode a swap entry
  *
  * Format of swap PTE:
- *	bit    0   :	_PAGE_PRESENT (zero)
- *	bit    1   :	_PAGE_FILE (zero)
- *	bits 2-8   :	swap type
- *	bits 9-XLEN:	swap offset
+ *	bit            0:	_PAGE_PRESENT (zero)
+ *	bit            1:	_PAGE_FILE (zero)
+ *	bits      2 to 6:	swap type
+ *	bits 7 to XLEN-1:	swap offset
  */
 #define __SWP_TYPE_SHIFT	2
-#define __SWP_TYPE_BITS		7
+#define __SWP_TYPE_BITS		5
 #define __SWP_TYPE_MASK		((1UL << __SWP_TYPE_BITS) - 1)
 #define __SWP_OFFSET_SHIFT	(__SWP_TYPE_BITS + __SWP_TYPE_SHIFT)
 
@@ -298,37 +296,31 @@ static inline void update_mmu_cache(struct vm_area_struct *vma,
  * Encode and decode a non-linear file mapping entry
  *
  * Format of file PTE:
- *	bit                0:	_PAGE_PRESENT (zero)
- *	bit                1:	_PAGE_FILE (zero)
- *	bits PAGE_SHIFT-XLEN:	file offset / PAGE_SIZE
+ *	bits                    0 to 2:	_PAGE_PRESENT (zero)
+ *	bit                          3:	_PAGE_FILE (set)
+ *	bits _PAGE_PFN_SHIFT to XLEN-1:	file offset / PAGE_SIZE
  */
 #ifdef CONFIG_64BIT
-#define PTE_FILE_MAX_BITS	(64 - PAGE_SHIFT)
+#define PTE_FILE_MAX_BITS	(64 - _PAGE_PFN_SHIFT)
 #else
-#define PTE_FILE_MAX_BITS	(32 - PAGE_SHIFT)
+#define PTE_FILE_MAX_BITS	(32 - _PAGE_PFN_SHIFT)
 #endif
 
 static inline pte_t pgoff_to_pte(unsigned long off)
 {
-	return __pte((off << PAGE_SHIFT) | _PAGE_FILE);
+	return __pte((off << _PAGE_PFN_SHIFT) | _PAGE_FILE);
 }
 
 static inline unsigned long pte_to_pgoff(pte_t pte)
 {
-	return (pte_val(pte) >> PAGE_SHIFT);
+	return (pte_val(pte) >> _PAGE_PFN_SHIFT);
 }
 
 #ifdef CONFIG_FLATMEM
 #define kern_addr_valid(addr)   (1) /* FIXME */
 #endif
 
-extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 extern void paging_init(void);
-
-#ifndef __PAGETABLE_PMD_FOLDED
-extern pmd_t ident_pm_dir[PTRS_PER_PMD];
-extern pmd_t kern_pm_dir[PTRS_PER_PMD];
-#endif /* __PAGETABLE_PMD_FOLDED */
 
 static inline void pgtable_cache_init(void)
 {
@@ -337,16 +329,20 @@ static inline void pgtable_cache_init(void)
 
 #endif /* CONFIG_MMU */
 
+#define VMALLOC_SIZE     _AC(0x8000000,UL)
+#define VMALLOC_END      (PAGE_OFFSET - 1)
+#define VMALLOC_START    (PAGE_OFFSET - VMALLOC_SIZE)
+
+/* Task size is 0x40000000000 for RV64 or 0xb800000 for RV32.
+   Note that PGDIR_SIZE must evenly divide TASK_SIZE. */
+#ifdef CONFIG_64BIT
+#define TASK_SIZE (PGDIR_SIZE * PTRS_PER_PGD / 2)
+#else
+#define TASK_SIZE VMALLOC_START
+#endif
+
 #include <asm-generic/pgtable.h>
 
 #endif /* !__ASSEMBLY__ */
-
-#ifdef CONFIG_64BIT
-#define VMALLOC_START    _AC(0xfffffffff8000000,UL)
-#define VMALLOC_END      _AC(0xffffffffffffffff,UL)
-#else
-#define VMALLOC_START    _AC(0xf8000000,UL)
-#define VMALLOC_END      _AC(0xffffffff,UL)
-#endif
 
 #endif /* _ASM_RISCV_PGTABLE_H */

@@ -3,40 +3,36 @@
 
 /*
  * RV32Sv32 page table entry:
- * | 31 22  | 21  12 | 11  9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
- *   PPN[1]   PPN[0]     --    SX  SW  SR  UX  UW  UR   G   T   V
+ * | 31 10 | 9             7 | 6 | 5 | 4  1 | 0
+ *    PFN    reserved for SW   D   R   TYPE   V
  *
- * RV64Sv43 page table entry:
- * | 63  33 | 32  23 | 22  13 | 12  9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
- *   PPN[2]   PPN[1]   PPN[0]     --   SX  SW  SR  UX  UW  UR   G   T   V
+ * RV64Sv39 / RV64Sv48 page table entry:
+ * | 63           48 | 47 10 | 9             7 | 6 | 5 | 4  1 | 0
+ *   reserved for HW    PFN    reserved for SW   D   R   TYPE   V
  */
 
-#define _PAGE_V         (1 << 0) /* Valid */
-#define _PAGE_T         (1 << 1) /* Non-leaf entry */
-#define _PAGE_G         (1 << 2) /* Global */
+#define _PAGE_PRESENT   (1 << 0)
+#define _PAGE_TYPE      (0xF << 1)  /* Page type */
+#define _PAGE_WRITE     (1 << 1)    /* Writable (subfield of TYPE field) */
+#define _PAGE_ACCESSED  (1 << 5)    /* Set by hardware on any access */
+#define _PAGE_DIRTY     (1 << 6)    /* Set by hardware on any write */
+#define _PAGE_SOFT      (1 << 7)    /* Reserved for software */
 
-#define _PAGE_SR        (1 << 6) /* Supervisor read */
-#define _PAGE_SW        (1 << 7) /* Supervisor write */
-#define _PAGE_SX        (1 << 8) /* Supervisor execute */
+#define _PAGE_TYPE_TABLE    (0x00)  /* Page table */
+#define _PAGE_TYPE_USER_RO  (0x08)  /* User read-only, Kernel read-only */
+#define _PAGE_TYPE_USER_RW  (0x0A)  /* User read-write, Kernel read-write */
+#define _PAGE_TYPE_USER_RX  (0x04)  /* User read-execute, Kernel read-only */
+#define _PAGE_TYPE_USER_RWX (0x06)  /* User RWX, Kernel read-write */
+#define _PAGE_TYPE_KERN_RW  (0x1A)  /* Kernel read-write */
 
-#define _PAGE_UR        (1 << 3) /* User read */
-#define _PAGE_UW        (1 << 4) /* User write */
-#define _PAGE_UX        (1 << 5) /* User execute */
+#define _PAGE_SPECIAL   _PAGE_SOFT
+#define _PAGE_FILE      _PAGE_WRITE /* when !present: non-linear file mapping */
+#define _PAGE_TABLE     (_PAGE_PRESENT | _PAGE_TYPE_TABLE)
 
-#define _PAGE_SOFT1     (1 <<  9) /* Reserved for software */
-#define _PAGE_SOFT2     (1 << 10) /* Reserved for software */
-#define _PAGE_SOFT3     (1 << 11) /* Reserved for software */
-#define _PAGE_SOFT4     (1 << 12) /* Reserved for software */
-
-#define _PAGE_PRESENT   _PAGE_V
-#define _PAGE_ACCESSED  _PAGE_SOFT1
-#define _PAGE_DIRTY     _PAGE_SOFT2
-#define _PAGE_SPECIAL   _PAGE_SOFT3
-#define _PAGE_FILE      _PAGE_T /* when !present: non-linear file mapping */
+#define _PAGE_PFN_SHIFT 10
 
 /* Set of bits to preserve across pte_modify() */
-#define _PAGE_CHG_MASK  (~(_PAGE_SR | _PAGE_SW | _PAGE_SX | \
-                           _PAGE_UR | _PAGE_UW | _PAGE_UX))
+#define _PAGE_CHG_MASK  (~(_PAGE_PRESENT | _PAGE_TYPE))
 
 /* Advertise support for _PAGE_SPECIAL */
 #define __HAVE_ARCH_PTE_SPECIAL

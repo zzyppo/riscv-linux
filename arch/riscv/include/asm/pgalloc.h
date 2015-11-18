@@ -7,19 +7,22 @@
 static inline void pmd_populate_kernel(struct mm_struct *mm,
 	pmd_t *pmd, pte_t *pte)
 {
-	set_pmd(pmd, __pmd(__pa(pte) | _PAGE_T | _PAGE_V));
+	unsigned long pfn = virt_to_pfn(pte);
+	set_pmd(pmd, __pmd((pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE));
 }
 
 static inline void pmd_populate(struct mm_struct *mm,
 	pmd_t *pmd, pgtable_t pte)
 {
-	set_pmd(pmd, __pmd(__pa(page_address(pte)) | _PAGE_T | _PAGE_V));
+	unsigned long pfn = virt_to_pfn(page_address(pte));
+	set_pmd(pmd, __pmd((pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE));
 }
 
 #ifndef __PAGETABLE_PMD_FOLDED
 static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
-	set_pud(pud, __pud(__pa(pmd) | _PAGE_T | _PAGE_V));
+	unsigned long pfn = virt_to_pfn(pmd);
+	set_pud(pud, __pud((pfn << _PAGE_PFN_SHIFT) | _PAGE_TABLE));
 }
 #endif /* __PAGETABLE_PMD_FOLDED */
 
@@ -34,7 +37,7 @@ static inline pgd_t *pgd_alloc(struct mm_struct *mm)
 		memset(pgd, 0, USER_PTRS_PER_PGD * sizeof(pgd_t));
 		/* Copy kernel mappings */
 		memcpy(pgd + USER_PTRS_PER_PGD,
-			swapper_pg_dir + USER_PTRS_PER_PGD,
+			init_mm.pgd + USER_PTRS_PER_PGD,
 			(PTRS_PER_PGD - USER_PTRS_PER_PGD) * sizeof(pgd_t));
 	}
 	return pgd;

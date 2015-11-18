@@ -21,6 +21,12 @@ LDFLAGS         :=
 OBJCOPYFLAGS    := -O binary
 LDFLAGS_vmlinux :=
 
+ifeq ($(ARCH),riscv)
+	KBUILD_DEFCONFIG = riscv64_spike
+else
+	KBUILD_DEFCONFIG = $(ARCH)_spike
+endif
+
 export BITS
 ifeq ($(CONFIG_64BIT),y)
 	BITS := 64
@@ -39,7 +45,15 @@ KBUILD_CFLAGS += -mno-atomic
 endif
 
 KBUILD_CFLAGS += -Wall
-KBUILD_CFLAGS += -fno-section-anchors
+KBUILD_CFLAGS += -msoft-float
+KBUILD_AFLAGS += -msoft-float
+
+ifeq ($(CONFIG_RVC),y)
+	KBUILD_CFLAGS += -mrvc
+	KBUILD_AFLAGS += -Wa,-mrvc
+endif
+
+KBUILD_CFLAGS += -mno-save-restore
 
 head-y := arch/riscv/kernel/head.o
 
