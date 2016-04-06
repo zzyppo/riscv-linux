@@ -6,6 +6,7 @@
 #include <asm/unistd.h>
 #include <asm/thread_info.h>
 #include <asm/asm-offsets.h>
+.comm help_var, 8
 
 	.text
 	.altmacro
@@ -126,7 +127,14 @@ ENTRY(handle_exception)
 1:	auipc gp, %pcrel_hi(_gp)
 	addi gp, gp, %pcrel_lo(1b)
 
-	la ra, ret_from_exception
+    la ra, ret_from_exception
+    la s3, help_var
+    sd ra, (s3)
+    li ra, 2
+    stag ra, (s3)
+    ld ra, (s3)
+
+	/*la ra, ret_from_exception*/
 	/* MSB of cause differentiates between
 	   interrupts and exceptions */
 	bge s4, zero, 1f
@@ -210,7 +218,13 @@ restore_all:
 
 work_pending:
 	/* Enter slow path for supplementary processing */
-	la ra, ret_from_exception
+	 la ra, ret_from_exception
+     la s3, help_var
+     sd ra, (s3)
+     li ra, 2
+     stag ra, (s3)
+     ld ra, (s3)
+	#la ra, ret_from_exception
 	andi s1, s0, _TIF_NEED_RESCHED
 	bnez s1, work_resched
 work_notifysig:
@@ -244,6 +258,12 @@ END(handle_exception)
 
 ENTRY(ret_from_fork)
 	la ra, ret_from_exception
+    la s3, help_var
+    sd ra, (s3)
+    li ra, 2
+    stag ra, (s3)
+    ld ra, (s3)
+	#la ra, ret_from_exception
 	tail schedule_tail
 ENDPROC(ret_from_fork)
 
@@ -251,6 +271,12 @@ ENTRY(ret_from_kernel_thread)
 	call schedule_tail
 	/* Call fn(arg) */
 	la ra, ret_from_exception
+    la s3, help_var
+    sd ra, (s3)
+    li ra, 2
+    stag ra, (s3)
+    ld ra, (s3)
+	#la ra, ret_from_exception
 	move a0, s1
 	jr s0
 ENDPROC(ret_from_kernel_thread)

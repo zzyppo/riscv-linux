@@ -90,6 +90,7 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 		childregs->sstatus = SR_PS | SR_PIE; /* Supervisor, irqs on */
 
 		p->thread.ra = (unsigned long)ret_from_kernel_thread;
+		asm volatile ("stag %0, 0(%1)" ::"r"(2), "r"(&(p->thread.ra)));
 		p->thread.s[0] = usp; /* fn */
 		p->thread.s[1] = arg;
 	} else {
@@ -100,6 +101,7 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
 			childregs->tp = childregs->a5;
 		childregs->a0 = 0; /* Return value of fork() */
 		p->thread.ra = (unsigned long)ret_from_fork;
+		asm volatile ("stag %0, 0(%1)" ::"r"(2), "r"(&(p->thread.ra)));
 	}
 	p->thread.sp = (unsigned long)childregs; /* kernel sp */
 	return 0;

@@ -13,8 +13,10 @@ ENTRY(_start)
 1:	auipc gp, %pcrel_hi(_gp)
 	addi gp, gp, %pcrel_lo(1b)
 
+
 	/* See if we're the main hart */
 	call sbi_hart_id
+
 	bnez a0, .Lsecondary_start
 
 	/* Clear the .bss segment */
@@ -33,6 +35,7 @@ ENTRY(_start)
 	   floating point in kernel space */
 	li t0, SR_FS
 	csrc sstatus, t0
+
 
 	tail start_kernel
 

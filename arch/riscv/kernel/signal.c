@@ -131,6 +131,8 @@ static int setup_rt_frame(struct ksignal *ksig, sigset_t *set,
 	/* Set up to return from userspace. */
 	regs->ra = (unsigned long)VDSO_SYMBOL(
 		current->mm->context.vdso, rt_sigreturn);
+	//asm volatile ("stag %0, 0(%1)" ::"r"(2), "r"(regs->ra));
+	asm volatile ("stag %0, 0(%1)" ::"r"(2), "r"(&(regs->ra)));
 
 	/*
 	 * Set up registers for signal handler.

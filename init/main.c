@@ -476,10 +476,15 @@ static void __init mm_init(void)
 	vmalloc_init();
 }
 
+#define write_csr(reg, val) \
+  asm volatile ("csrw " #reg ", %0" :: "r"(val))
+
 asmlinkage void __init start_kernel(void)
 {
 	char * command_line;
 	extern const struct kernel_param __start___param[], __stop___param[];
+
+    pr_notice("New Test sadasda output\n");
 
 	/*
 	 * Need to run as early as possible, to initialize the
@@ -498,11 +503,13 @@ asmlinkage void __init start_kernel(void)
 
 	local_irq_disable();
 	early_boot_irqs_disabled = true;
+	//write_csr(0x400, 1);
 
 /*
  * Interrupts are still disabled. Do necessary setups, then
  * enable them
  */
+ //	pr_notice("New Test output\n");
 	boot_cpu_init();
 	page_address_init();
 	pr_notice("%s", linux_banner);
@@ -652,6 +659,7 @@ asmlinkage void __init start_kernel(void)
 
 	ftrace_init();
 
+    //write_csr(0x400, 3);
 	/* Do the rest non-__init'ed, we're now alive */
 	rest_init();
 }
