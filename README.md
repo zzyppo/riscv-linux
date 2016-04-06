@@ -6,6 +6,8 @@ instruction set architecture.
 Development is currently based on the [3.14 longterm branch](
 https://git.kernel.org/cgit/linux/kernel/git/stable/linux-stable.git/log/?h=linux-3.14.y).
 
+The kernel is modified to support tagged memory security policies
+
 Building the kernel image
 --------------------------------------------------------------------------------
 
@@ -15,9 +17,9 @@ Building the kernel image
         $ curl -L https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.14.41.tar.xz | tar -xJ
         $ cd linux-3.14.41
         $ git init
-        $ git remote add origin https://github.com/riscv/riscv-linux.git
+        $ git remote add origin git@github.com:zzyppo/riscv-linux.git
         $ git fetch
-        $ git checkout -f -t origin/master
+        $ git checkout -f -t origin/linux3.13.41 
 
 1. Populate `./.config` with the default symbol values:
 
