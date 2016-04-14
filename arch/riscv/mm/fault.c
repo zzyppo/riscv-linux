@@ -8,6 +8,9 @@
 #include <asm/ptrace.h>
 #include <asm/uaccess.h>
 
+ #define write_csr(reg, val) \
+       asm volatile ("csrw " #reg ", %0" :: "r"(val))
+
 /*
  * This routine handles page faults.  It determines the address and the
  * problem, and then passes it off to one of the appropriate routines.
@@ -97,8 +100,14 @@ good_area:
 	 * make sure we exit gracefully rather than endlessly redo
 	 * the fault.
 	 */
+	 write_csr(0x400,3); //Checks on / io invalid tag generation off
+	 //pr_notice("Switch off tag contrlol\n");
+
+
 	fault = handle_mm_fault(mm, vma, addr, flags);
 
+	//pr_notice("Switch on tag contrlol\n");
+    write_csr(0x400,7); //Checks on / io invalid tag generation off
 	/*
 	 * If we need to retry but a fatal signal is pending, handle the
 	 * signal first. We do not need to release the mmap_sem because it

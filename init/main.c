@@ -823,6 +823,7 @@ void __init load_default_modules(void)
 
 static int run_init_process(const char *init_filename)
 {
+ pr_notice("Running init process HIER\n");
 	argv_init[0] = init_filename;
 	return do_execve(getname_kernel(init_filename),
 		(const char __user *const __user *)argv_init,
@@ -849,6 +850,7 @@ static int __ref kernel_init(void *unused)
 {
 	int ret;
 
+pr_notice("HIER1\n");
 	kernel_init_freeable();
 	/* need to finish all async __init code before freeing the memory */
 	async_synchronize_full();
@@ -858,8 +860,10 @@ static int __ref kernel_init(void *unused)
 	numa_default_policy();
 
 	flush_delayed_fput();
+	pr_notice("HIER2\n");
 
 	if (ramdisk_execute_command) {
+	pr_notice("HIER3\n");
 		ret = run_init_process(ramdisk_execute_command);
 		if (!ret)
 			return 0;
@@ -874,6 +878,7 @@ static int __ref kernel_init(void *unused)
 	 * trying to recover a really broken machine.
 	 */
 	if (execute_command) {
+	pr_notice("HIER4\n");
 		ret = run_init_process(execute_command);
 		if (!ret)
 			return 0;
