@@ -1457,6 +1457,9 @@ static int exec_binprm(struct linux_binprm *bprm)
 	return ret;
 }
 
+#define write_csr(reg, val) \
+  asm volatile ("csrw " #reg ", %0" :: "r"(val))
+
 /*
  * sys_execve() executes a new program.
  */
@@ -1469,11 +1472,14 @@ static int do_execve_common(struct filename *filename,
 	struct files_struct *displaced;
 	int retval;
 
-
+    pr_notice("Enter eceve_common switch off IO tag generation\n");
+    write_csr(0x400,3);
 	if (IS_ERR(filename))
 	{
+        pr_notice("Exit eceve_common with filename error turn on IO tag generation\n");
+        write_csr(0x400,7);
 		return PTR_ERR(filename);
-        }
+    }
 
 	/*
 	 * We move the actual failure in case of RLIMIT_NPROC excess from
@@ -1562,6 +1568,8 @@ static int do_execve_common(struct filename *filename,
 	if (displaced)
 		put_files_struct(displaced);
 
+    pr_notice("Leave eceve_common succeeded error turn on IO tag generation\n");
+    write_csr(0x400,7);
 	return retval;
 
 out:
@@ -1583,6 +1591,8 @@ out_files:
 		reset_files_struct(displaced);
 out_ret:
 	putname(filename);
+	pr_notice("Exit eceve_common with error turn on IO tag generation\n");
+	write_csr(0x400,7);
 	return retval;
 }
 
