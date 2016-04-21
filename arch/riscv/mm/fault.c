@@ -101,12 +101,12 @@ good_area:
 	 * the fault.
 	 */
 	 write_csr(0x400,3); //Checks on / io invalid tag generation off
-	 //pr_notice("Switch off tag contrlol\n");
+	 pr_notice("Switch off tag contrlol\n");
 
 
 	fault = handle_mm_fault(mm, vma, addr, flags);
 
-	//pr_notice("Switch on tag contrlol\n");
+	pr_notice("Switch on tag contrlol\n");
     write_csr(0x400,7); //Checks on / io invalid tag generation off
 	/*
 	 * If we need to retry but a fatal signal is pending, handle the
