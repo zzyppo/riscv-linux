@@ -84,6 +84,9 @@
 #include <asm/sections.h>
 #include <asm/cacheflush.h>
 
+//Tag control
+#include "tag_control.h"
+
 #ifdef CONFIG_X86_LOCAL_APIC
 #include <asm/smp.h>
 #endif
@@ -476,8 +479,7 @@ static void __init mm_init(void)
 	vmalloc_init();
 }
 
-#define write_csr(reg, val) \
-  asm volatile ("csrw " #reg ", %0" :: "r"(val))
+
 
 asmlinkage void __init start_kernel(void)
 {
@@ -503,7 +505,7 @@ asmlinkage void __init start_kernel(void)
 
 	local_irq_disable();
 	early_boot_irqs_disabled = true;
-	//write_csr(0x400, 1);
+	//write_csr(0x400, 0xF);
 
 /*
  * Interrupts are still disabled. Do necessary setups, then

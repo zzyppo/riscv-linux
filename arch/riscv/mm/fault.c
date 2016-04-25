@@ -8,8 +8,7 @@
 #include <asm/ptrace.h>
 #include <asm/uaccess.h>
 
- #define write_csr(reg, val) \
-       asm volatile ("csrw " #reg ", %0" :: "r"(val))
+#include "tag_control.h"
 
 /*
  * This routine handles page faults.  It determines the address and the
@@ -100,14 +99,21 @@ good_area:
 	 * make sure we exit gracefully rather than endlessly redo
 	 * the fault.
 	 */
-	 write_csr(0x400,3); //Checks on / io invalid tag generation off
+	 //write_csr(0x400,3); //Checks on / io invalid tag generation off
+	 //clear_csr(ptagctrl, INV_TAG_GEN);
+	 //write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | DEBUG_CHECK);
+	 pr_notice("TagCtrl is %x", read_csr(ptagctrl));
+	 invalidTagGenOff();
 	 pr_notice("Switch off tag contrlol\n");
 
 
 	fault = handle_mm_fault(mm, vma, addr, flags);
 
 	pr_notice("Switch on tag contrlol\n");
-    write_csr(0x400,7); //Checks on / io invalid tag generation off
+    //write_csr(0x400,7); //Checks on / io invalid tag generation off
+    //set_csr(ptagctrl, INV_TAG_GEN);
+   // write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | INV_TAG_GEN | DEBUG_CHECK);
+     invalidTagGenOn();
 	/*
 	 * If we need to retry but a fatal signal is pending, handle the
 	 * signal first. We do not need to release the mmap_sem because it

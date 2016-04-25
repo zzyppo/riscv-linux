@@ -66,6 +66,9 @@
 
 #include <trace/events/sched.h>
 
+//Tag control
+#include "tag_control.h"
+
 int suid_dumpable = 0;
 
 static LIST_HEAD(formats);
@@ -1457,9 +1460,6 @@ static int exec_binprm(struct linux_binprm *bprm)
 	return ret;
 }
 
-#define write_csr(reg, val) \
-  asm volatile ("csrw " #reg ", %0" :: "r"(val))
-
 /*
  * sys_execve() executes a new program.
  */
@@ -1473,11 +1473,19 @@ static int do_execve_common(struct filename *filename,
 	int retval;
 
     pr_notice("Enter eceve_common switch off IO tag generation\n");
-    write_csr(0x400,3);
+    //write_csr(0x400,3);
+    //clear_csr(ptagctrl, INV_TAG_GEN); //Somehow does not work but optimal solution
+   // write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | DEBUG_CHECK);
+    invalidTagGenOff();
+
+
 	if (IS_ERR(filename))
 	{
         pr_notice("Exit eceve_common with filename error turn on IO tag generation\n");
-        write_csr(0x400,7);
+        //write_csr(0x400,7);
+        //set_csr(ptagctrl, INV_TAG_GEN);
+        //write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | INV_TAG_GEN | DEBUG_CHECK);
+        invalidTagGenOn();
 		return PTR_ERR(filename);
     }
 
@@ -1569,7 +1577,10 @@ static int do_execve_common(struct filename *filename,
 		put_files_struct(displaced);
 
     pr_notice("Leave eceve_common succeeded error turn on IO tag generation\n");
-    write_csr(0x400,7);
+    //write_csr(0x400,7);
+    //set_csr(ptagctrl, INV_TAG_GEN);
+    //write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | INV_TAG_GEN | DEBUG_CHECK);
+    invalidTagGenOn();
 	return retval;
 
 out:
@@ -1592,7 +1603,10 @@ out_files:
 out_ret:
 	putname(filename);
 	pr_notice("Exit eceve_common with error turn on IO tag generation\n");
-	write_csr(0x400,7);
+	//write_csr(0x400,7);
+	//set_csr(ptagctrl, INV_TAG_GEN);
+	//write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | INV_TAG_GEN | DEBUG_CHECK);
+	invalidTagGenOn();
 	return retval;
 }
 
