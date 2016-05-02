@@ -1472,19 +1472,13 @@ static int do_execve_common(struct filename *filename,
 	struct files_struct *displaced;
 	int retval;
 
-    pr_notice("Enter eceve_common switch off IO tag generation\n");
-    //write_csr(0x400,3);
-    //clear_csr(ptagctrl, INV_TAG_GEN); //Somehow does not work but optimal solution
-   // write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | DEBUG_CHECK);
+    //pr_notice("Enter eceve_common switch off IO tag generation\n");
     invalidTagGenOff();
 
 
 	if (IS_ERR(filename))
 	{
-        pr_notice("Exit eceve_common with filename error turn on IO tag generation\n");
-        //write_csr(0x400,7);
-        //set_csr(ptagctrl, INV_TAG_GEN);
-        //write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | INV_TAG_GEN | DEBUG_CHECK);
+        //pr_notice("Exit eceve_common with filename error turn on IO tag generation\n");
         invalidTagGenOn();
 		return PTR_ERR(filename);
     }
@@ -1576,10 +1570,7 @@ static int do_execve_common(struct filename *filename,
 	if (displaced)
 		put_files_struct(displaced);
 
-    pr_notice("Leave eceve_common succeeded error turn on IO tag generation\n");
-    //write_csr(0x400,7);
-    //set_csr(ptagctrl, INV_TAG_GEN);
-    //write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | INV_TAG_GEN | DEBUG_CHECK);
+    //pr_notice("Leave eceve_common succeeded error turn on IO tag generation\n");
     invalidTagGenOn();
 	return retval;
 
@@ -1602,10 +1593,7 @@ out_files:
 		reset_files_struct(displaced);
 out_ret:
 	putname(filename);
-	pr_notice("Exit eceve_common with error turn on IO tag generation\n");
-	//write_csr(0x400,7);
-	//set_csr(ptagctrl, INV_TAG_GEN);
-	//write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | INV_TAG_GEN | DEBUG_CHECK);
+	//pr_notice("Exit eceve_common with error turn on IO tag generation\n");
 	invalidTagGenOn();
 	return retval;
 }

@@ -99,20 +99,13 @@ good_area:
 	 * make sure we exit gracefully rather than endlessly redo
 	 * the fault.
 	 */
-	 //write_csr(0x400,3); //Checks on / io invalid tag generation off
-	 //clear_csr(ptagctrl, INV_TAG_GEN);
-	 //write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | DEBUG_CHECK);
-	 pr_notice("TagCtrl is %x", read_csr(ptagctrl));
 	 invalidTagGenOff();
-	 pr_notice("Switch off tag contrlol\n");
+	// pr_notice("Switch off tag contrlol\n");
 
 
 	fault = handle_mm_fault(mm, vma, addr, flags);
 
-	pr_notice("Switch on tag contrlol\n");
-    //write_csr(0x400,7); //Checks on / io invalid tag generation off
-    //set_csr(ptagctrl, INV_TAG_GEN);
-   // write_csr(ptagctrl, RET_TAG_CHECK | INV_TAG_CHECK | INV_TAG_GEN | DEBUG_CHECK);
+	//pr_notice("Switch on tag contrlol\n");
      invalidTagGenOn();
 	/*
 	 * If we need to retry but a fatal signal is pending, handle the

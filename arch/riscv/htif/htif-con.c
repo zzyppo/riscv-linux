@@ -162,7 +162,6 @@ static struct tty_driver *htif_tty_driver;
 
 static irqreturn_t htifcon_isr(struct htif_device *dev, sbi_device_message *msg)
 {
-int tag = 0;
 	struct htifcon_port *port = dev_get_drvdata(&dev->dev);
 
 	if (msg->cmd == HTIF_CMD_READ) {
@@ -171,9 +170,6 @@ int tag = 0;
 		tty_flip_buffer_push(&port->port);
 		spin_unlock(&port->lock);
 
-
-        asm volatile ("ltag %0, 0(%1)":"=r"(tag):"r"((&(msg->data))));
-       pr_notice("tag of data %x\n", tag);
 		/* Request next character */
 		sbi_send_device_request(__pa(msg));
 	} else if (msg->cmd == HTIF_CMD_WRITE) {
