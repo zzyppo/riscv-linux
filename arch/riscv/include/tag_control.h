@@ -11,7 +11,7 @@
 #define DEBUG_CHECK             0x00000008 //Traps if a tag other than 0/1/2/3 is in any register (DEBUG purpose)
 //#define DEBUG_CHECK             0x00000000 //Traps if a tag other than 0/1/2/3 is in any register (DEBUG purpose)
 
-#define TAG_CTRL_REG_ADDR       0x400
+#define TAG_CTRL_REG_ADDR       0x800
 
 //Wrap the register to be used within asm instuction
 #define STR1(x) #x

@@ -1472,13 +1472,13 @@ static int do_execve_common(struct filename *filename,
 	struct files_struct *displaced;
 	int retval;
 
-    //pr_notice("Enter eceve_common switch off IO tag generation\n");
+    pr_notice("Enter eceve_common switch off IO tag generation\n");
     invalidTagGenOff();
 
 
 	if (IS_ERR(filename))
 	{
-        //pr_notice("Exit eceve_common with filename error turn on IO tag generation\n");
+        pr_notice("Exit eceve_common with filename error turn on IO tag generation\n");
         invalidTagGenOn();
 		return PTR_ERR(filename);
     }
@@ -1570,7 +1570,7 @@ static int do_execve_common(struct filename *filename,
 	if (displaced)
 		put_files_struct(displaced);
 
-    //pr_notice("Leave eceve_common succeeded error turn on IO tag generation\n");
+    pr_notice("Leave eceve_common succeeded error turn on IO tag generation\n");
     invalidTagGenOn();
 	return retval;
 
@@ -1593,7 +1593,7 @@ out_files:
 		reset_files_struct(displaced);
 out_ret:
 	putname(filename);
-	//pr_notice("Exit eceve_common with error turn on IO tag generation\n");
+	pr_notice("Exit eceve_common with error turn on IO tag generation\n");
 	invalidTagGenOn();
 	return retval;
 }
